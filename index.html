@@ -2,8 +2,15 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Tic Tac Toe: Flow Edition</title>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="TicTacToe">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/566/566312.png">
+
     <style>
         :root {
             --bg-color: #0f172a;
@@ -26,6 +33,9 @@
             height: 100vh;
             margin: 0;
             overflow: hidden;
+            /* Mobil dokunmatik engelleri */
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         h1 {
@@ -34,6 +44,7 @@
             text-transform: uppercase;
             margin-bottom: 20px;
             text-shadow: 0 0 15px rgba(255,255,255,0.3);
+            font-size: 1.5rem;
         }
 
         #game-container {
@@ -83,7 +94,6 @@
             text-shadow: 0 0 20px var(--accent-o);
         }
 
-        /* Silinmek üzere olan hamle (Yarı saydam) */
         .cell.fading {
             opacity: 0.3;
             filter: blur(1.5px);
@@ -108,6 +118,7 @@
             transition: all 0.3s;
             text-transform: uppercase;
             letter-spacing: 2px;
+            -webkit-appearance: none;
         }
 
         #reset-btn:hover {
@@ -145,7 +156,6 @@
         let currentPlayer = 'X';
         let gameActive = true;
         
-        // Hamleleri oyuncu bazlı takip ediyoruz
         let playerMoves = {
             'X': [],
             'O': []
@@ -166,26 +176,18 @@
             if (!gameActive || cell.innerText !== '') return;
 
             const symbol = currentPlayer;
-            
-            // 1. Yeni hamleyi ekle
             cell.innerText = symbol;
             cell.classList.add(symbol === 'X' ? 'x-symbol' : 'o-symbol', 'pop');
             
-            // Oyuncunun hamle listesine bu hücreyi ekle
             playerMoves[symbol].push(cell);
 
-            // 2. Kuralı Uygula: Eğer bu oyuncunun 4. hamlesiyse en eskiyi sil
             if (playerMoves[symbol].length > 3) {
                 const oldestCell = playerMoves[symbol].shift();
                 oldestCell.innerText = '';
                 oldestCell.classList.remove('x-symbol', 'o-symbol', 'pop', 'fading');
             }
 
-            // 3. Görsel Geri Bildirim: Silinecek olan hamleyi (varsa 1. hamle) soluklaştır
-            // (Şu anki listede 3 hamle varsa, 0. indisteki hamle bir sonraki turda silinecek demektir)
             updateFadingEffects();
-
-            // 4. Kazananı Kontrol Et
             checkWinner();
 
             if (gameActive) {
@@ -195,10 +197,7 @@
         }
 
         function updateFadingEffects() {
-            // Önce tüm fading sınıflarını temizle
             document.querySelectorAll('.cell').forEach(c => c.classList.remove('fading'));
-            
-            // Eğer bir oyuncunun 3 hamlesi dolmuşsa, en eskisi (0. index) soluklaşsın
             ['X', 'O'].forEach(p => {
                 if (playerMoves[p].length === 3) {
                     playerMoves[p][0].classList.add('fading');
@@ -221,7 +220,6 @@
                     cells[a].innerText === cells[b].innerText && 
                     cells[a].innerText === cells[c].innerText) {
                     won = true;
-                    // Kazanan hücreleri vurgula (isteğe bağlı)
                     break;
                 }
             }
@@ -230,7 +228,6 @@
                 statusElement.innerText = `TEBRİKLER! ${currentPlayer} KAZANDI!`;
                 statusElement.style.color = currentPlayer === 'X' ? 'var(--accent-x)' : 'var(--accent-o)';
                 gameActive = false;
-                // Kazanan olduğunda fading efektini kaldır ki net görünsün
                 document.querySelectorAll('.cell').forEach(c => c.classList.remove('fading'));
             }
         }
