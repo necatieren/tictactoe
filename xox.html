@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic Tac Toe: Flow Edition</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --accent-x: #22d3ee; /* Neon Cyan */
+            --accent-o: #fb7185; /* Neon Rose */
+            --grid-line: #334155;
+            --transition-speed: 0.4s;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        h1 {
+            font-weight: 300;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            text-shadow: 0 0 15px rgba(255,255,255,0.3);
+        }
+
+        #game-container {
+            position: relative;
+            padding: 20px;
+            background: var(--card-bg);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5),
+                        inset 0 1px 1px rgba(255,255,255,0.1);
+        }
+
+        #grid {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 10px;
+        }
+
+        .cell {
+            background: var(--bg-color);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all var(--transition-speed) ease;
+            position: relative;
+            user-select: none;
+            width: 100px;
+            height: 100px;
+        }
+
+        .cell:hover {
+            background: #1e293b;
+            transform: scale(1.05);
+        }
+
+        .x-symbol {
+            color: var(--accent-x);
+            text-shadow: 0 0 20px var(--accent-x);
+        }
+
+        .o-symbol {
+            color: var(--accent-o);
+            text-shadow: 0 0 20px var(--accent-o);
+        }
+
+        /* Silinmek üzere olan hamle (Yarı saydam) */
+        .cell.fading {
+            opacity: 0.3;
+            filter: blur(1.5px);
+            transform: scale(0.9);
+        }
+
+        #status {
+            margin-top: 30px;
+            font-size: 1.2rem;
+            height: 1.5rem;
+            font-weight: 400;
+        }
+
+        #reset-btn {
+            margin-top: 20px;
+            padding: 12px 30px;
+            background: transparent;
+            border: 1px solid var(--grid-line);
+            color: var(--text-main);
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        #reset-btn:hover {
+            background: var(--text-main);
+            color: var(--bg-color);
+            box-shadow: 0 0 20px rgba(255,255,255,0.2);
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0); }
+            80% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .pop {
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Tic Tac Toe</h1>
+    
+    <div id="game-container">
+        <div id="grid"></div>
+    </div>
+
+    <div id="status">Sıra: X</div>
+    
+    <button id="reset-btn" onclick="resetGame()">Yeniden Başlat</button>
+
+    <script>
+        const gridElement = document.getElementById('grid');
+        const statusElement = document.getElementById('status');
+        let currentPlayer = 'X';
+        let gameActive = true;
+        
+        // Hamleleri oyuncu bazlı takip ediyoruz
+        let playerMoves = {
+            'X': [],
+            'O': []
+        };
+
+        function createBoard() {
+            gridElement.innerHTML = '';
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.setAttribute('data-index', i);
+                cell.addEventListener('click', () => handleMove(cell));
+                gridElement.appendChild(cell);
+            }
+        }
+
+        function handleMove(cell) {
+            if (!gameActive || cell.innerText !== '') return;
+
+            const symbol = currentPlayer;
+            
+            // 1. Yeni hamleyi ekle
+            cell.innerText = symbol;
+            cell.classList.add(symbol === 'X' ? 'x-symbol' : 'o-symbol', 'pop');
+            
+            // Oyuncunun hamle listesine bu hücreyi ekle
+            playerMoves[symbol].push(cell);
+
+            // 2. Kuralı Uygula: Eğer bu oyuncunun 4. hamlesiyse en eskiyi sil
+            if (playerMoves[symbol].length > 3) {
+                const oldestCell = playerMoves[symbol].shift();
+                oldestCell.innerText = '';
+                oldestCell.classList.remove('x-symbol', 'o-symbol', 'pop', 'fading');
+            }
+
+            // 3. Görsel Geri Bildirim: Silinecek olan hamleyi (varsa 1. hamle) soluklaştır
+            // (Şu anki listede 3 hamle varsa, 0. indisteki hamle bir sonraki turda silinecek demektir)
+            updateFadingEffects();
+
+            // 4. Kazananı Kontrol Et
+            checkWinner();
+
+            if (gameActive) {
+                currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                statusElement.innerText = `Sıra: ${currentPlayer}`;
+            }
+        }
+
+        function updateFadingEffects() {
+            // Önce tüm fading sınıflarını temizle
+            document.querySelectorAll('.cell').forEach(c => c.classList.remove('fading'));
+            
+            // Eğer bir oyuncunun 3 hamlesi dolmuşsa, en eskisi (0. index) soluklaşsın
+            ['X', 'O'].forEach(p => {
+                if (playerMoves[p].length === 3) {
+                    playerMoves[p][0].classList.add('fading');
+                }
+            });
+        }
+
+        function checkWinner() {
+            const winConditions = [
+                [0,1,2], [3,4,5], [6,7,8], [0,3,6], 
+                [1,4,7], [2,5,8], [0,4,8], [2,4,6]
+            ];
+
+            const cells = document.querySelectorAll('.cell');
+            let won = false;
+
+            for (let condition of winConditions) {
+                const [a, b, c] = condition;
+                if (cells[a].innerText !== '' && 
+                    cells[a].innerText === cells[b].innerText && 
+                    cells[a].innerText === cells[c].innerText) {
+                    won = true;
+                    // Kazanan hücreleri vurgula (isteğe bağlı)
+                    break;
+                }
+            }
+
+            if (won) {
+                statusElement.innerText = `TEBRİKLER! ${currentPlayer} KAZANDI!`;
+                statusElement.style.color = currentPlayer === 'X' ? 'var(--accent-x)' : 'var(--accent-o)';
+                gameActive = false;
+                // Kazanan olduğunda fading efektini kaldır ki net görünsün
+                document.querySelectorAll('.cell').forEach(c => c.classList.remove('fading'));
+            }
+        }
+
+        function resetGame() {
+            currentPlayer = 'X';
+            gameActive = true;
+            playerMoves = { 'X': [], 'O': [] };
+            statusElement.innerText = `Sıra: X`;
+            statusElement.style.color = 'var(--text-main)';
+            createBoard();
+        }
+
+        createBoard();
+    </script>
+</body>
+</html>
